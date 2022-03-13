@@ -13,6 +13,10 @@
 
 // const response = await fetch('https://restcountries.com/v3.1/name/Turkey');
 
+const search = document.getElementById("search");
+const inputCountry = document.getElementById("input");
+const reset = document.getElementById("reset");
+
 const renderCountry = (data, type = "country") => {
   const flag = data.flags.svg;
   const countryName = data.name.common;
@@ -63,40 +67,75 @@ const renderCountry = (data, type = "country") => {
   }
 };
 
-// let globalData = 'Henüz boş';
-const getCountry = async (countryName) => {
-  const response = await fetch(
-    `https://restcountries.com/v3.1/name/${countryName}`
-  );
-  const data = await response.json();
-  // renderCountry(data[0]);
-  // console.log(data);
-  return data[0];
-  // globalData = data;
-  //   console.log(data[0].capital, data[0].name.common);
-  //   console.log('Inside async');
-  //   console.log(globalData);
-};
-// https://restcountries.com/v3.1/alpha/{code}
+reset.addEventListener("click", () => {
+  window.location.reload(false);
+});
 
-const getNeighbour = async (countryCode) => {
-  const response = await fetch(
-    `https://restcountries.com/v3.1/alpha/${countryCode}`
-  );
-  const data = await response.json();
-  return data[0];
-};
+search.addEventListener("click", () => {
+  // let globalData = 'Henüz boş';
+  const getCountry = async (countryName) => {
+    const response = await fetch(
+      `https://restcountries.com/v3.1/name/${countryName}`
+    );
+    console.log(response);
+    if (!response.ok) throw new Error(response.statusText);
+    const data = await response.json();
+    // renderCountry(data[0]);
+    // console.log(data);
+    return data[0];
+    // globalData = data;
+    //   console.log(data[0].capital, data[0].name.common);
+    //   console.log('Inside async');
+    //   console.log(globalData);
+  };
+  // https://restcountries.com/v3.1/alpha/{code}
 
-const viewCountry = async (countryName) => {
-  const data = await getCountry(countryName);
-  renderCountry(data);
+  const getNeighbour = async (countryCode) => {
+    const response = await fetch(
+      `https://restcountries.com/v3.1/alpha/${countryCode}`
+    );
+    const data = await response.json();
+    return data[0];
+  };
 
-  console.log(data.borders);
-  const neighbour = await getNeighbour(data.borders[0]);
-  renderCountry(neighbour, "neighbour");
-  const neighbour2 = await getNeighbour(data.borders[3]);
-  renderCountry(neighbour2, "neighbour");
-};
+  const renderError = (msg) => {
+    const inputContainer = document.querySelector(".input-section");
+    const errorHtml = document.createElement("div");
 
-viewCountry("Turkey");
-// console.log(globalData);
+    errorHtml.classList.add("alert", "alert-danger", "alert-container");
+    errorHtml.innerText = msg;
+    inputContainer.insertAdjacentElement("beforeend", errorHtml);
+  };
+
+  const viewCountry = async (countryName) => {
+    try {
+      const data = await getCountry(countryName);
+      renderCountry(data);
+
+      console.log(data.borders);
+      //   const neighbour = await getNeighbour(data.borders[0]);
+      //   renderCountry(neighbour, 'neighbour');
+      //   const neighbour2 = await getNeighbour(data.borders[3]);
+      //   renderCountry(neighbour2, 'neighbour');
+      if (data.borders) {
+        // data.borders.forEach(async (item) => {
+        //   const neighbour = await getNeighbour(item);
+        //   renderCountry(neighbour, 'neighbour');
+        // });
+        for await (const item of data.borders) {
+          const neighbour = await getNeighbour(item);
+          renderCountry(neighbour, "neighbour");
+        }
+      } else {
+        console.log("komşu yok");
+        throw new Error("No Negihbour!");
+      }
+    } catch (error) {
+      // console.log(error);
+      renderError(error);
+    }
+  };
+
+  viewCountry(inputCountry.value);
+  // console.log(globalData);
+});
